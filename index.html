@@ -6,7 +6,6 @@
   <title>FinancePeres | Gestão Inteligente</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
   <script>
     tailwind.config = {
       theme: {
@@ -22,40 +21,27 @@
       }
     }
   </script>
-
   <style>
     body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .animate-enter { animation: fadeIn 0.4s ease-out forwards; }
-    #error-display { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #ef4444; color: white; padding: 20px; z-index: 9999; font-family: monospace; white-space: pre-wrap; }
   </style>
-
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@19.0.0",
-    "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom",
+    "react": "https://esm.sh/react@^19.2.4",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
     "react/": "https://esm.sh/react@^19.2.4/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0"
+    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3"
   }
 }
 </script>
 </head>
 <body class="bg-[#f8fafc] text-slate-900">
-  <div id="error-display"></div>
   <div id="root"></div>
-
-  <script>
-    window.onerror = function(msg, url, line) {
-      const display = document.getElementById('error-display');
-      display.style.display = 'block';
-      display.innerText = `Erro de Execução: ${msg}\nLocal: ${url}:${line}`;
-    };
-  </script>
-
-  <script type="module" src="index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>

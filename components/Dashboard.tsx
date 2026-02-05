@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend 
 } from 'recharts';
 import { Transaction } from '../types.ts';
+import GeminiInsights from './GeminiInsights.tsx';
 
 interface Props {
   transactions: Transaction[];
@@ -40,8 +40,8 @@ const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => 
 
   const handleExport = () => {
     setExcelStatus('success');
-    const headers = "Descrição;Valor;Data;Categoria;Tipo\n";
-    const body = transactions.map(t => `${t.descricao};${t.valor};${t.data};${t.categoria};${t.tipo}`).join("\n");
+    const headers = "ID;Descrição;Valor;Data;Categoria;Tipo;Status;Frequência\n";
+    const body = transactions.map(t => `${t.id};${t.descricao};${t.valor};${t.data};${t.categoria};${t.tipo};${t.status};${t.frequencia}`).join("\n");
     const blob = new Blob(["\uFEFF" + headers + body], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -63,13 +63,18 @@ const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => 
 
   return (
     <div className="space-y-8 animate-enter">
-      <div className="flex justify-end gap-3">
-        <button onClick={handleExport} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${excelStatus === 'success' ? 'bg-emerald-500 border-emerald-500 text-white transform scale-105' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'}`}>
-          {excelStatus === 'success' ? '✓ Exportado' : 'Exportar Excel'}
-        </button>
-        <button onClick={handleWhatsApp} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${whatsappStatus === 'success' ? 'bg-emerald-500 border-emerald-500 text-white transform scale-105' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'}`}>
-          {whatsappStatus === 'success' ? '✓ Copiado' : 'Relatório WhatsApp'}
-        </button>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="w-full md:w-64">
+          <GeminiInsights transactions={transactions} currentMonth={monthName} />
+        </div>
+        <div className="flex gap-3 w-full md:w-auto">
+          <button onClick={handleExport} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${excelStatus === 'success' ? 'bg-emerald-500 border-emerald-500 text-white transform scale-105' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'}`}>
+            {excelStatus === 'success' ? '✓ Exportado' : 'Exportar Excel'}
+          </button>
+          <button onClick={handleWhatsApp} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${whatsappStatus === 'success' ? 'bg-emerald-500 border-emerald-500 text-white transform scale-105' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'}`}>
+            {whatsappStatus === 'success' ? '✓ Copiado' : 'Relatório WhatsApp'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

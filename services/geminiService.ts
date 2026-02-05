@@ -2,9 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, FinancialInsight } from "../types";
 
-// Generates financial insights from transaction data using the Gemini 3 Flash model
 export const getFinancialInsights = async (transactions: Transaction[], currentMonth: string): Promise<FinancialInsight> => {
-  // Always use a named parameter for the API key from process.env.API_KEY
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const summary = transactions.reduce((acc: { income: number; expense: number }, t) => {
@@ -39,29 +37,23 @@ export const getFinancialInsights = async (transactions: Transaction[], currentM
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            summary: { 
-              type: Type.STRING,
-              description: "A summary of the current month's financial performance."
-            },
+            summary: { type: Type.STRING },
             recommendations: { 
               type: Type.ARRAY, 
-              items: { type: Type.STRING },
-              description: "A list of actionable financial advice."
+              items: { type: Type.STRING } 
             },
             alertLevel: { 
               type: Type.STRING, 
-              enum: ['low', 'medium', 'high'],
-              description: "The priority or urgency level of the financial situation."
+              enum: ['low', 'medium', 'high'] 
             }
           },
-          propertyOrdering: ["summary", "recommendations", "alertLevel"],
           required: ["summary", "recommendations", "alertLevel"]
         }
       }
     });
 
-    // Directly access the text property as a string (not a method call)
-    const jsonStr = response.text?.trim() || '{}';
+    // CORREÇÃO: .text é uma propriedade getter, não um método.
+    const jsonStr = response.text || '{}';
     return JSON.parse(jsonStr) as FinancialInsight;
   } catch (error) {
     console.error("Gemini Error:", error);
