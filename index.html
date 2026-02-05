@@ -8,6 +8,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
+    // Polyfill crucial para evitar tela branca em navegadores que não definem process globalmente
+    window.process = { env: { API_KEY: "" } };
+    
     tailwind.config = {
       theme: {
         extend: {
@@ -18,7 +21,7 @@
               200: '#bbface',
               300: '#86f4aa',
               400: '#4be47e',
-              500: '#1ebf61', // Verde Organizze
+              500: '#1ebf61',
               600: '#19a352',
               700: '#178144',
               800: '#176639',
@@ -37,20 +40,6 @@
     body { font-family: 'Inter', sans-serif; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .btn-primary {
-      background-color: #1ebf61;
-      color: white;
-      transition: all 0.2s;
-    }
-    .btn-primary:hover {
-      background-color: #19a352;
-      transform: translateY(-1px);
-    }
-    .card {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-    }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
