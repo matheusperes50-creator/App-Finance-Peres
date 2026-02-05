@@ -36,10 +36,12 @@ const App: React.FC = () => {
 
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
+  // Filtragem robusta baseada em string para evitar erros de Timezone
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
-      const d = new Date(t.data);
-      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+      if (!t.data) return false;
+      const [year, month] = t.data.split('-').map(Number);
+      return (month - 1) === selectedMonth && year === selectedYear;
     });
   }, [transactions, selectedMonth, selectedYear]);
 
@@ -161,11 +163,21 @@ const App: React.FC = () => {
             onCopyPrevious={async () => {
               let pm = selectedMonth - 1, py = selectedYear;
               if (pm < 0) { pm = 11; py--; }
+              
               const prev = transactions.filter(t => {
-                const d = new Date(t.data);
-                return d.getMonth() === pm && d.getFullYear() === py;
+                const [y, m] = t.data.split('-').map(Number);
+                return (m - 1) === pm && y === py;
               });
-              prev.forEach(t => addTransaction({ ...t, data: new Date(selectedYear, selectedMonth, 1).toISOString().split('T')[0], status: 'Pendente' }));
+
+              // Cria data segura para o mês atual (1º dia do mês selecionado)
+              const safeMonth = (selectedMonth + 1).toString().padStart(2, '0');
+              const newDate = `${selectedYear}-${safeMonth}-01`;
+              
+              prev.forEach(t => addTransaction({ 
+                ...t, 
+                data: newDate, 
+                status: 'Pendente' 
+              }));
             }}
             defaultMonth={selectedMonth} 
             defaultYear={selectedYear} 

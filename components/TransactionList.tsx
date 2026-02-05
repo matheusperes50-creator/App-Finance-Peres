@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Transaction, CATEGORIES } from '../types.ts';
 
@@ -31,16 +30,21 @@ const TransactionList: React.FC<Props> = ({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success'>('idle');
   const [importStatus, setImportStatus] = useState<'idle' | 'success'>('idle');
 
+  const getInitialDate = () => {
+    const month = (defaultMonth + 1).toString().padStart(2, '0');
+    return `${defaultYear}-${month}-01`;
+  };
+
   const [formData, setFormData] = useState({
     descricao: '', 
     valor: '', 
-    data: new Date(defaultYear, defaultMonth, 1).toISOString().split('T')[0], 
+    data: getInitialDate(), 
     categoria: 'Outro', 
     tipo: 'Despesa' as 'Receita' | 'Despesa', 
     status: 'Pendente' as 'Pago' | 'Pendente'
   });
 
-  // Atualiza o formulário quando entra em modo de edição
+  // Atualiza o formulário quando entra em modo de edição ou muda o mês selecionado
   useEffect(() => {
     if (editingTransaction) {
       setFormData({
@@ -55,7 +59,7 @@ const TransactionList: React.FC<Props> = ({
       setFormData({
         descricao: '', 
         valor: '', 
-        data: new Date(defaultYear, defaultMonth, 1).toISOString().split('T')[0], 
+        data: getInitialDate(), 
         categoria: 'Outro', 
         tipo: 'Despesa', 
         status: 'Pendente'
@@ -102,6 +106,12 @@ const TransactionList: React.FC<Props> = ({
     setEditingTransaction(null);
   };
 
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return "-";
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
   return (
     <div className="space-y-6 animate-enter">
       <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-50 shadow-sm">
@@ -140,7 +150,7 @@ const TransactionList: React.FC<Props> = ({
                     </td>
                     <td className="px-8 py-5">
                       <p className="font-bold text-slate-800 text-sm">{t.descricao}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">{t.data}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">{formatDateDisplay(t.data)}</p>
                     </td>
                     <td className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase">{t.categoria}</td>
                     <td className={`px-8 py-5 font-black text-sm ${t.tipo === 'Receita' ? 'text-brand-500' : 'text-rose-500'}`}>
