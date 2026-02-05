@@ -1,64 +1,68 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FinancePeres</title>
+  <title>FinancePeres | Gestão Inteligente</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <script>
-    // Polyfill crucial para evitar tela branca em navegadores que não definem process globalmente
-    window.process = { env: { API_KEY: "" } };
-    
+    // 1. Polyfill robusto para evitar erros em bibliotecas (como Gemini API)
+    window.process = window.process || { env: { API_KEY: "" } };
+
+    // 2. Configuração do Tailwind
     tailwind.config = {
       theme: {
         extend: {
           colors: {
             brand: {
-              50: '#f0fff4',
-              100: '#dcfee7',
-              200: '#bbface',
-              300: '#86f4aa',
-              400: '#4be47e',
-              500: '#1ebf61',
-              600: '#19a352',
-              700: '#178144',
-              800: '#176639',
-              900: '#155431',
-            },
-            surface: '#f9fafb'
-          },
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
+              50: '#f0fff4', 100: '#dcfee7', 200: '#bbface', 300: '#86f4aa',
+              400: '#4be47e', 500: '#1ebf61', 600: '#19a352', 700: '#178144',
+              800: '#176639', 900: '#155431',
+            }
           }
         }
       }
     }
   </script>
+
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .animate-enter { animation: fadeIn 0.4s ease-out forwards; }
+    #error-display { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #ef4444; color: white; padding: 20px; z-index: 9999; font-family: monospace; white-space: pre-wrap; }
   </style>
-<script type="importmap">
+
+  <script type="importmap">
 {
   "imports": {
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@1.40.0",
+    "recharts": "https://esm.sh/recharts@2.12.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
-    "recharts": "https://esm.sh/recharts@^3.7.0"
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
 </head>
-<body class="bg-surface text-slate-900 min-h-screen">
+<body class="bg-[#f8fafc] text-slate-900">
+  <div id="error-display"></div>
   <div id="root"></div>
+
+  <!-- Sistema de Debug para Tela Branca -->
+  <script>
+    window.onerror = function(msg, url, line) {
+      const display = document.getElementById('error-display');
+      display.style.display = 'block';
+      display.innerText = `Erro de Execução: ${msg}\nLocal: ${url}:${line}`;
+    };
+  </script>
+
+  <!-- PONTO DE ENTRADA CRUCIAL -->
+  <script type="module" src="index.tsx"></script>
 </body>
 </html>
