@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Transaction } from './types.ts';
 import Dashboard from './components/Dashboard.tsx';
@@ -92,7 +91,6 @@ const App: React.FC = () => {
             <h1 className="text-xl font-black tracking-tight text-slate-800">Finance<span className="text-brand-500">Peres</span></h1>
           </div>
           
-          {/* Status de Sincronização */}
           <div className={`flex items-center gap-3 p-4 rounded-2xl border transition-all mb-8 ${syncStatus === 'online' ? 'bg-emerald-50 border-emerald-100' : syncStatus === 'syncing' ? 'bg-amber-50 border-amber-100' : 'bg-rose-50 border-rose-100'}`}>
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${syncStatus === 'online' ? 'bg-emerald-500' : syncStatus === 'syncing' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500'} text-white`}>
               {syncStatus === 'online' ? (
@@ -124,7 +122,6 @@ const App: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 p-6 md:p-12 overflow-y-auto max-h-screen">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>

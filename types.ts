@@ -19,7 +19,7 @@ export interface MonthlyData {
   transactions: Transaction[];
 }
 
-// Fixed: Added missing FinancialInsight interface export
+// FinancialInsight interface for structured responses from the Gemini API
 export interface FinancialInsight {
   summary: string;
   recommendations: string[];
