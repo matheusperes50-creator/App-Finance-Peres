@@ -18,6 +18,7 @@ interface Props {
 const TransactionList: React.FC<Props> = ({ transactions, onAdd, onUpdate, onDelete, onToggleStatus, onCopyPrevious, defaultMonth, defaultYear, monthName, hideValues }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'active'>('idle');
   
   const getDefaultDate = () => {
     const now = new Date();
@@ -39,15 +40,26 @@ const TransactionList: React.FC<Props> = ({ transactions, onAdd, onUpdate, onDel
     setShowModal(false);
   };
 
+  const handleCopy = () => {
+    setCopyStatus('active');
+    setTimeout(() => setCopyStatus('idle'), 2000);
+    onCopyPrevious();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
         <div className="flex gap-2">
-          <button onClick={onCopyPrevious} className="px-4 py-2 bg-gray-50 text-slate-600 rounded-lg text-xs font-bold border border-gray-100 hover:bg-gray-100 transition">Importar Anterior</button>
+          <button 
+            onClick={handleCopy} 
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 border ${copyStatus === 'active' ? 'bg-emerald-500 border-emerald-500 text-white transform scale-105' : 'bg-gray-50 text-slate-600 border-gray-100 hover:bg-gray-100'}`}
+          >
+            {copyStatus === 'active' ? 'Copiado!' : 'Importar Anterior'}
+          </button>
         </div>
         
         <div className="flex gap-2">
-          <button onClick={() => { setEditingTransaction(null); setFormData(initialFormState); setShowModal(true); }} className="px-6 py-2 bg-brand-500 text-white rounded-lg text-sm font-extrabold shadow-lg shadow-brand-100 hover:bg-brand-600 transition active:scale-95">
+          <button onClick={() => { setEditingTransaction(null); setFormData(initialFormState); setShowModal(true); }} className="px-6 py-2 bg-brand-500 text-white rounded-xl text-sm font-extrabold shadow-lg shadow-brand-100 hover:bg-brand-600 transition active:scale-95">
              + Novo Lançamento
           </button>
         </div>

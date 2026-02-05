@@ -3,10 +3,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction } from "../types";
 
 export const getFinancialInsights = async (transactions: Transaction[], currentMonth: string) => {
-  // Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Verificação de segurança para evitar crash em ambientes onde process.env pode não estar definido imediatamente
+  const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : '';
+  if (!apiKey) {
+    throw new Error("API Key não configurada. Verifique as configurações de ambiente.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   
-  // Fix: changed 'type' to 'tipo', 'INCOME' to 'Receita' and 'amount' to 'valor'
   const summary = transactions.reduce((acc: { income: number; expense: number }, t) => {
     if (t.tipo === 'Receita') {
       acc.income += t.valor;
@@ -16,7 +20,6 @@ export const getFinancialInsights = async (transactions: Transaction[], currentM
     return acc;
   }, { income: 0, expense: 0 });
 
-  // Fix: changed 'type' to 'tipo', 'EXPENSE' to 'Despesa', 'category' to 'categoria' and 'amount' to 'valor'
   const categoryBreakdown = transactions
     .filter(t => t.tipo === 'Despesa')
     .reduce((acc: any, t) => {
@@ -60,7 +63,6 @@ export const getFinancialInsights = async (transactions: Transaction[], currentM
       }
     });
 
-    // Directly access .text property as per guidelines
     return JSON.parse(response.text || '{}');
   } catch (error) {
     console.error("Error fetching Gemini insights:", error);

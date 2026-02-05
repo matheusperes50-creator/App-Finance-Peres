@@ -82,34 +82,48 @@ const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => 
     }
 
     msg += `━━━━━━━━━━━━━━━━━━\n`;
-    msg += `✨ _Copiado de FinancePeres_`;
+    msg += `✨ _Gerado por FinancePeres_`;
 
-    navigator.clipboard.writeText(msg).then(() => {
-      // Feedback visual já tratado pelo state
-    });
+    navigator.clipboard.writeText(msg);
   };
 
   return (
     <div className="space-y-8">
-      {/* Botões de Relatório no Dashboard conforme solicitado */}
       <div className="flex justify-end gap-2 mb-2">
         <button 
           onClick={handleExportCSV} 
-          className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm ${excelStatus === 'active' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50'}`}
+          className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300 shadow-sm ${excelStatus === 'active' ? 'bg-emerald-500 border-emerald-500 text-white transform scale-105' : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50'}`}
         >
-          <svg className={`w-4 h-4 ${excelStatus === 'active' ? 'text-white' : 'text-emerald-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-          {excelStatus === 'active' ? 'Exportado!' : 'Exportar Excel'}
+          {excelStatus === 'active' ? (
+            <>
+              <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+              Baixado!
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              Exportar Excel
+            </>
+          )}
         </button>
         <button 
           onClick={handleCopyWhatsApp} 
-          className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm ${whatsappStatus === 'active' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50'}`}
+          className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300 shadow-sm ${whatsappStatus === 'active' ? 'bg-emerald-500 border-emerald-500 text-white transform scale-105' : 'bg-white border-gray-200 text-slate-600 hover:bg-gray-50'}`}
         >
-          <svg className={`w-4 h-4 ${whatsappStatus === 'active' ? 'text-white' : 'text-emerald-500'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.484 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.309 1.656zm6.29-4.143c1.589.944 3.119 1.462 4.827 1.463 5.424 0 9.835-4.411 9.838-9.835.002-2.628-1.023-5.1-2.885-6.963-1.862-1.865-4.334-2.889-6.96-2.891-5.424 0-9.835 4.411-9.838 9.836-.002 1.848.497 3.654 1.446 5.233l-.966 3.525 3.58-.938zm12.501-7.07c-.036-.06-.133-.096-.279-.169-.147-.073-.869-.43-1.003-.478-.133-.049-.231-.073-.329.073-.097.147-.378.478-.463.574-.085.096-.17.108-.317.036-.147-.073-.62-.228-1.181-.728-.436-.39-1.31-1.28-1.31-1.28.1-.036.19-.085.27-.16l.16-.16c.07-.07.12-.13.16-.2.07-.12.03-.23-.01-.31-.04-.08-.33-.79-.45-.11-.12-.3-.23-.53-.26-.14-.04-.26-.01-.35.03-.09.04-.15.24-.31.32-.08.08-.24.23-.39.43-.15.2-.23.47-.35.6-.12.13-.23.19-.39.12-.15-.07-.63-.23-1.19-.73-.44-.39-.74-.87-.82-.99-.08-.12-.01-.19.06-.27l.11-.13c.04-.05.07-.11.11-.16.03-.05.06-.12.06-.2 0-.08-.03-.17-.07-.26-.04-.09-.33-.79-.45-1.08-.12-.29-.25-.25-.33-.25h-.28c-.1 0-.26.04-.39.19-.13.15-.51.5-.51 1.21s.52 1.4 1.22 1.63c.7.23 1.21.2 1.43.17.22-.03.71-.27.81-.54.1-.27.1-.5.07-.54-.03-.04-.11-.06-.25-.14z"></path></svg>
-          {whatsappStatus === 'active' ? 'Copiado!' : 'Relatório WhatsApp'}
+          {whatsappStatus === 'active' ? (
+            <>
+              <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+              Copiado!
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.484 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.309 1.656zm6.29-4.143c1.589.944 3.119 1.462 4.827 1.463 5.424 0 9.835-4.411 9.838-9.835.002-2.628-1.023-5.1-2.885-6.963-1.862-1.865-4.334-2.889-6.96-2.891-5.424 0-9.835 4.411-9.838 9.836-.002 1.848.497 3.654 1.446 5.233l-.966 3.525 3.58-.938zm12.501-7.07c-.036-.06-.133-.096-.279-.169-.147-.073-.869-.43-1.003-.478-.133-.049-.231-.073-.329.073-.097.147-.378.478-.463.574-.085.096-.17.108-.317.036-.147-.073-.62-.228-1.181-.728-.436-.39-1.31-1.28-1.31-1.28.1-.036.19-.085.27-.16l.16-.16c.07-.07.12-.13.16-.2.07-.12.03-.23-.01-.31-.04-.08-.33-.79-.45-.11-.12-.3-.23-.53-.26-.14-.04-.26-.01-.35.03-.09.04-.15.24-.31.32-.08.08-.24.23-.39.43-.15.2-.23.47-.35.6-.12.13-.23.19-.39.12-.15-.07-.63-.23-1.19-.73-.44-.39-.74-.87-.82-.99-.08-.12-.01-.19.06-.27l.11-.13c.04-.05.07-.11.11-.16.03-.05.06-.12.06-.2 0-.08-.03-.17-.07-.26-.04-.09-.33-.79-.45-1.08-.12-.29-.25-.25-.33-.25h-.28c-.1 0-.26.04-.39.19-.13.15-.51.5-.51 1.21s.52 1.4 1.22 1.63c.7.23 1.21.2 1.43.17.22-.03.71-.27.81-.54.1-.27.1-.5.07-.54-.03-.04-.11-.06-.25-.14z"></path></svg>
+              Relatório WhatsApp
+            </>
+          )}
         </button>
       </div>
 
-      {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
           <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Saldo Mensal</p>
