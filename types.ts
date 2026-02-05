@@ -1,4 +1,3 @@
-
 export type TransactionType = 'Receita' | 'Despesa';
 export type TransactionStatus = 'Pago' | 'Pendente';
 export type TransactionFrequency = 'Fixo' | 'Esporádico';
@@ -20,6 +19,7 @@ export interface MonthlyData {
   transactions: Transaction[];
 }
 
+// Fixed: Added missing FinancialInsight interface export
 export interface FinancialInsight {
   summary: string;
   recommendations: string[];

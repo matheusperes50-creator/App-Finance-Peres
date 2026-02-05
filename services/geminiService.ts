@@ -1,10 +1,11 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Transaction } from "../types";
+import { Transaction, FinancialInsight } from "../types";
 
-export const getFinancialInsights = async (transactions: Transaction[], currentMonth: string) => {
-  // Inicialização dinâmica para garantir que process.env.API_KEY esteja disponível no momento do uso
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+// Generates financial insights from transaction data using the Gemini 3 Flash model
+export const getFinancialInsights = async (transactions: Transaction[], currentMonth: string): Promise<FinancialInsight> => {
+  // Always use a named parameter for the API key from process.env.API_KEY
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const summary = transactions.reduce((acc: { income: number; expense: number }, t) => {
     if (t.tipo === 'Receita') acc.income += t.valor;
@@ -14,7 +15,7 @@ export const getFinancialInsights = async (transactions: Transaction[], currentM
 
   const categoryBreakdown = transactions
     .filter(t => t.tipo === 'Despesa')
-    .reduce((acc: any, t) => {
+    .reduce((acc: Record<string, number>, t) => {
       acc[t.categoria] = (acc[t.categoria] || 0) + t.valor;
       return acc;
     }, {});
@@ -38,16 +39,30 @@ export const getFinancialInsights = async (transactions: Transaction[], currentM
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            summary: { type: Type.STRING },
-            recommendations: { type: Type.ARRAY, items: { type: Type.STRING } },
-            alertLevel: { type: Type.STRING, enum: ['low', 'medium', 'high'] }
+            summary: { 
+              type: Type.STRING,
+              description: "A summary of the current month's financial performance."
+            },
+            recommendations: { 
+              type: Type.ARRAY, 
+              items: { type: Type.STRING },
+              description: "A list of actionable financial advice."
+            },
+            alertLevel: { 
+              type: Type.STRING, 
+              enum: ['low', 'medium', 'high'],
+              description: "The priority or urgency level of the financial situation."
+            }
           },
+          propertyOrdering: ["summary", "recommendations", "alertLevel"],
           required: ["summary", "recommendations", "alertLevel"]
         }
       }
     });
 
-    return JSON.parse(response.text || '{}');
+    // Directly access the text property as a string (not a method call)
+    const jsonStr = response.text?.trim() || '{}';
+    return JSON.parse(jsonStr) as FinancialInsight;
   } catch (error) {
     console.error("Gemini Error:", error);
     throw error;
