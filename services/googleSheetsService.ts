@@ -3,8 +3,7 @@ import { Transaction } from "../types";
 const API_URL = "https://script.google.com/macros/s/AKfycbyRZwkY1-CG8MDNCF-2QbMYGVK9pcI-MgcvG4HsICO46FGY4n255Gzjr5YMiU_bKlNjow/exec";
 
 /**
- * Normaliza as chaves de um objeto para minúsculas e remove acentos comuns
- * para garantir compatibilidade com os cabeçalhos da planilha.
+ * Normaliza as chaves de um objeto para minúsculas e remove acentos comuns.
  */
 const normalizeKeys = (obj: any) => {
   const normalized: any = {};
@@ -12,7 +11,8 @@ const normalizeKeys = (obj: any) => {
     const normalizedKey = key
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+      .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+      .trim();
     normalized[normalizedKey] = obj[key];
   }
   return normalized;
@@ -36,23 +36,38 @@ export const sheetsService = {
       return data.map((item: any) => {
         const t = normalizeKeys(item);
         
-        // Parsing robusto do valor
+        // Parsing de valor com suporte a múltiplos nomes de colunas e formatos
+        const rawValue = t.valor !== undefined ? t.valor : (t.value !== undefined ? t.value : t.montante);
         let valorNumerico = 0;
-        if (typeof t.valor === 'number') {
-          valorNumerico = t.valor;
-        } else if (typeof t.valor === 'string') {
-          valorNumerico = parseFloat(t.valor.replace(',', '.')) || 0;
+        if (typeof rawValue === 'number') {
+          valorNumerico = rawValue;
+        } else if (typeof rawValue === 'string') {
+          // Remove símbolos de moeda e ajusta separador decimal
+          const cleaned = rawValue.replace(/[R$\s]/g, '').replace('.', '').replace(',', '.');
+          valorNumerico = parseFloat(cleaned) || 0;
+        }
+
+        // Mapeamento flexível de status
+        let rawStatus = (t.status || t.situacao || t.estado || 'Pendente').toString().trim();
+        // Normaliza primeira letra maiúscula
+        rawStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+        const finalStatus = (rawStatus === 'Pago' || rawStatus === 'Pendente') ? rawStatus : 'Pendente';
+
+        // Mapeamento de data
+        let finalDate = t.data || t.date || new Date().toISOString().split('T')[0];
+        if (typeof finalDate === 'string' && finalDate.includes('T')) {
+          finalDate = finalDate.split('T')[0];
         }
 
         return {
           id: t.id ? t.id.toString() : Math.random().toString(36).substr(2, 9),
-          descricao: t.descricao || t.description || "Sem descrição",
+          descricao: t.descricao || t.description || t.nome || "Sem descrição",
           valor: valorNumerico,
-          data: t.data ? t.data.toString().split('T')[0] : new Date().toISOString().split('T')[0],
-          tipo: t.tipo || 'Despesa',
-          status: t.status || 'Pendente',
-          categoria: t.categoria || 'Outro',
-          frequencia: t.frequencia || 'Esporádico'
+          data: finalDate,
+          tipo: t.tipo || t.type || 'Despesa',
+          status: finalStatus as any,
+          categoria: t.categoria || t.category || 'Outro',
+          frequencia: t.frequencia || t.frequency || 'Esporádico'
         } as Transaction;
       });
     } catch (error) {

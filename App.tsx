@@ -29,46 +29,43 @@ const App: React.FC = () => {
   }, [transactions]);
 
   /**
-   * Função principal de carregamento de dados da Nuvem
-   * Removida a dependência de [transactions] para evitar loops e garantir consistência
+   * Função de carregamento de dados da Nuvem.
+   * Chamada automaticamente na inicialização.
    */
-  const loadData = useCallback(async (isManualRefresh = false) => {
+  const loadData = useCallback(async () => {
     setSyncStatus('syncing');
-    if (isManualRefresh) setIsLoading(true);
-
     try {
       const remoteData = await sheetsService.getAll();
       
       if (Array.isArray(remoteData)) {
         if (remoteData.length > 0) {
-          // Só atualizamos se realmente vieram dados úteis
+          // Se houver dados na nuvem, eles são a fonte da verdade
           setTransactions(remoteData);
-          setSyncStatus('online');
         } else {
-          // Se a planilha estiver vazia, verificamos se o usuário clicou em atualizar manualmente
-          // Se não foi manual, tentamos subir o que temos local (primeiro acesso com planilha nova)
+          // Se a planilha estiver vazia, verificamos se o app local tem algo para subir
           setTransactions(current => {
-            if (current.length > 0 && !isManualRefresh) {
-              console.log("Planilha vazia detectada. Sincronizando dados locais...");
+            if (current.length > 0) {
+              console.log("Planilha vazia. Enviando dados locais para nuvem...");
               sheetsService.syncAll(current);
             }
             return current;
           });
-          setSyncStatus('online');
         }
+        setSyncStatus('online');
       } else {
         setSyncStatus('offline');
       }
     } catch (error) {
-      console.error("Falha ao carregar dados da nuvem:", error);
+      console.error("Erro na sincronização inicial:", error);
       setSyncStatus('offline');
+      // Não limpa 'transactions' para manter o que está no cache local em caso de erro
     } finally {
       setIsLoading(false);
       hasLoadedInitialData.current = true;
     }
-  }, []); // Sem dependências para garantir estabilidade
+  }, []);
 
-  // Efeito de inicialização
+  // Inicialização
   useEffect(() => {
     if (!hasLoadedInitialData.current) {
       loadData();
@@ -123,10 +120,10 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#f8fafc] overflow-hidden">
-      {isLoading && hasLoadedInitialData.current === false && (
+      {isLoading && !hasLoadedInitialData.current && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[200] flex flex-col items-center justify-center">
           <div className="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-slate-500 font-bold animate-pulse">Sincronizando com Google Sheets...</p>
+          <p className="text-slate-500 font-bold animate-pulse">Sincronizando dados...</p>
         </div>
       )}
 
@@ -204,11 +201,8 @@ const App: React.FC = () => {
               {hideValues ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268-2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
               )}
-            </button>
-            <button onClick={() => loadData(true)} title="Forçar Sincronização" className="p-2 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-brand-500 transition-all shadow-sm">
-               <svg className={`w-5 h-5 ${syncStatus === 'syncing' ? 'animate-spin text-brand-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             </button>
           </div>
         </header>
