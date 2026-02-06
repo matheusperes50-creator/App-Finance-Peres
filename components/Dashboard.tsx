@@ -12,7 +12,7 @@ interface Props {
   monthName: string;
 }
 
-const COLORS = ['#1ebf61', '#34d399', '#f59e0b', '#ef4444', '#10b981', '#f97316', '#06b6d4', '#8b5cf6'];
+const COLORS = ['#1ebf61', '#34d399', '#f59e0b', '#ef4444', '#10b981', '#f97316', '#06b6d4', '#8b5cf6', '#6366f1'];
 
 const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => {
   const [excelStatus, setExcelStatus] = useState<'idle' | 'success'>('idle');
@@ -20,12 +20,13 @@ const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => 
 
   const summary = transactions.reduce((acc, t) => {
     if (t.tipo === 'Receita') acc.income += t.valor;
-    else acc.expense += t.valor;
+    else if (t.tipo === 'Despesa') acc.expense += t.valor;
+    else if (t.tipo === 'Investimento') acc.investment += t.valor;
     return acc;
-  }, { income: 0, expense: 0 });
+  }, { income: 0, expense: 0, investment: 0 });
 
   const categoryData = transactions
-    .filter(t => t.tipo === 'Despesa')
+    .filter(t => t.tipo === 'Despesa' || t.tipo === 'Investimento')
     .reduce((acc: any[], t) => {
       const existing = acc.find(item => item.name === t.categoria);
       if (existing) existing.value += t.valor;
@@ -55,11 +56,18 @@ const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => 
     let msg = `📊 *Resumo Financeiro - ${monthName}*\n\n`;
     msg += `✅ Receitas: ${formatValue(summary.income)}\n`;
     msg += `🔴 Despesas: ${formatValue(summary.expense)}\n`;
-    msg += `💎 Saldo: ${formatValue(summary.income - summary.expense)}\n\n`;
+    msg += `📈 Investimentos: ${formatValue(summary.investment)}\n`;
+    msg += `💎 Saldo: ${formatValue(summary.income - summary.expense - summary.investment)}\n\n`;
     msg += `✨ Gerado via FinancePeres`;
     navigator.clipboard.writeText(msg);
     setTimeout(() => setWhatsappStatus('idle'), 2000);
   };
+
+  const barData = [
+    { name: 'Receita', val: summary.income, fill: '#1ebf61' },
+    { name: 'Despesa', val: summary.expense, fill: '#ef4444' },
+    { name: 'Investimento', val: summary.investment, fill: '#6366f1' }
+  ];
 
   return (
     <div className="space-y-8 animate-enter">
@@ -77,39 +85,43 @@ const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-50">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Balanço</p>
-          <h3 className={`text-2xl font-black ${summary.income - summary.expense >= 0 ? 'text-slate-800' : 'text-rose-500'}`}>
-            {formatValue(summary.income - summary.expense)}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-50">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Saldo Final</p>
+          <h3 className={`text-xl font-black ${summary.income - summary.expense - summary.investment >= 0 ? 'text-slate-800' : 'text-rose-500'}`}>
+            {formatValue(summary.income - summary.expense - summary.investment)}
           </h3>
         </div>
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-50">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Receitas</p>
-          <h3 className="text-2xl font-black text-brand-500">{formatValue(summary.income)}</h3>
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-50">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Receitas</p>
+          <h3 className="text-xl font-black text-brand-500">{formatValue(summary.income)}</h3>
         </div>
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-50">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Despesas</p>
-          <h3 className="text-2xl font-black text-rose-500">{formatValue(summary.expense)}</h3>
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-50">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Despesas</p>
+          <h3 className="text-xl font-black text-rose-500">{formatValue(summary.expense)}</h3>
+        </div>
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-50">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Investido</p>
+          <h3 className="text-xl font-black text-indigo-500">{formatValue(summary.investment)}</h3>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-50 min-h-[400px]">
-          <h4 className="font-black text-slate-800 mb-8 uppercase text-xs tracking-widest">Fluxo de Caixa</h4>
+          <h4 className="font-black text-slate-800 mb-8 uppercase text-xs tracking-widest">Fluxo Mensal</h4>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={[{ name: 'Receita', val: summary.income, fill: '#1ebf61' }, { name: 'Despesa', val: summary.expense, fill: '#ef4444' }]}>
+            <BarChart data={barData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700 }} />
               <YAxis hide />
               <Tooltip cursor={{ fill: '#f8fafc' }} />
-              <Bar dataKey="val" radius={[8, 8, 0, 0]} barSize={60} />
+              <Bar dataKey="val" radius={[8, 8, 0, 0]} barSize={50} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-50 min-h-[400px]">
-          <h4 className="font-black text-slate-800 mb-8 uppercase text-xs tracking-widest">Gastos por Categoria</h4>
+          <h4 className="font-black text-slate-800 mb-8 uppercase text-xs tracking-widest">Gastos & Aportes</h4>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value">

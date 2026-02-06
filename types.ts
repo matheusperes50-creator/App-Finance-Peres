@@ -1,4 +1,4 @@
-export type TransactionType = 'Receita' | 'Despesa';
+export type TransactionType = 'Receita' | 'Despesa' | 'Investimento';
 export type TransactionStatus = 'Pago' | 'Pendente';
 export type TransactionFrequency = 'Fixo' | 'Esporádico';
 
@@ -28,5 +28,6 @@ export interface FinancialInsight {
 
 export const CATEGORIES = {
   INCOME: ['Salário', 'Freelance', 'Investimento', 'Presente', 'Outro'],
-  EXPENSE: ['Moradia', 'Alimentação', 'Transporte', 'Utilidades', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Outro']
+  EXPENSE: ['Moradia', 'Alimentação', 'Transporte', 'Utilidades', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Outro'],
+  INVESTMENT: ['Reserva de Emergência', 'Renda Fixa', 'Ações', 'Fundos Imobiliários', 'Criptoativos', 'Previdência', 'Outro']
 };
