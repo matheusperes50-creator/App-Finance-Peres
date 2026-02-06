@@ -7,7 +7,7 @@ import { sheetsService } from './services/googleSheetsService.ts';
 
 const App: React.FC = () => {
   const [isHome, setIsHome] = useState(true);
-  const [hideValues, setHideValues] = useState(true);
+  const [hideValues, setHideValues] = useState(false); // Agora inicia como falso para mostrar valores
   const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'investments'>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'online' | 'offline' | 'syncing'>('syncing');
@@ -17,21 +17,15 @@ const App: React.FC = () => {
 
   const hasLoadedInitialData = useRef(false);
 
-  // Carrega transações do LocalStorage apenas como fallback imediato
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('ff_transactions');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Salva no localStorage sempre que as transações mudarem
   useEffect(() => {
     localStorage.setItem('ff_transactions', JSON.stringify(transactions));
   }, [transactions]);
 
-  /**
-   * Função de carregamento de dados da Nuvem.
-   * Chamada automaticamente na inicialização.
-   */
   const loadData = useCallback(async () => {
     setSyncStatus('syncing');
     try {
@@ -39,13 +33,10 @@ const App: React.FC = () => {
       
       if (Array.isArray(remoteData)) {
         if (remoteData.length > 0) {
-          // Se houver dados na nuvem, eles são a fonte da verdade
           setTransactions(remoteData);
         } else {
-          // Se a planilha estiver vazia, verificamos se o app local tem algo para subir
           setTransactions(current => {
             if (current.length > 0) {
-              console.log("Planilha vazia. Enviando dados locais para nuvem...");
               sheetsService.syncAll(current);
             }
             return current;
@@ -58,14 +49,12 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Erro na sincronização inicial:", error);
       setSyncStatus('offline');
-      // Não limpa 'transactions' para manter o que está no cache local em caso de erro
     } finally {
       setIsLoading(false);
       hasLoadedInitialData.current = true;
     }
   }, []);
 
-  // Inicialização
   useEffect(() => {
     if (!hasLoadedInitialData.current) {
       loadData();
