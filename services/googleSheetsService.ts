@@ -1,8 +1,10 @@
-
 import { Transaction } from "../types";
 
-// URL fornecida pelo usuário para o Google Apps Script
-const API_URL = "https://script.google.com/macros/s/AKfycbwq_gGJ6PlQ1WfI53Qpm14RImHRYbzXuHvf39QeQt-fl5o8BWrGNJODQj85o7WWFgiS/exec";
+/**
+ * URL da planilha do Google Sheets utilizada como banco de dados.
+ * Atualizada conforme solicitação do usuário.
+ */
+const API_URL = "https://script.google.com/macros/s/AKfycbzGLXVNSW83zlD7fwRGX2lTNAwGCsfRoMsiDpLVdCwfwty5-iN8Aarjo7SkcUEt-jfGnw/exec";
 
 export const sheetsService = {
   async getAll(): Promise<Transaction[]> {
@@ -10,14 +12,20 @@ export const sheetsService = {
     try {
       const response = await fetch(API_URL, {
         method: "GET",
-        mode: "cors",
-        redirect: "follow"
+        redirect: "follow",
+        cache: "no-store"
       });
       
-      if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Erro na rede: ${response.status}`);
+      }
+
       const data = await response.json();
       
-      if (!Array.isArray(data)) return [];
+      if (!Array.isArray(data)) {
+        console.warn("Dados inválidos do servidor.");
+        return [];
+      }
 
       return data.map((t: any) => ({
         ...t,
@@ -30,7 +38,7 @@ export const sheetsService = {
         frequencia: t.frequencia || 'Esporádico'
       }));
     } catch (error) {
-      console.error("Erro ao carregar do Google Sheets:", error);
+      console.error("Erro na sincronização Google Sheets:", error);
       const localData = localStorage.getItem('ff_transactions');
       return localData ? JSON.parse(localData) : [];
     }
@@ -39,7 +47,6 @@ export const sheetsService = {
   async save(transaction: Transaction): Promise<boolean> {
     if (!API_URL) return false;
     try {
-      // Usamos 'text/plain' para evitar pre-flight OPTIONS que o Google Script não suporta bem com CORS padrão
       await fetch(API_URL, {
         method: "POST",
         mode: "no-cors", 
@@ -80,7 +87,7 @@ export const sheetsService = {
       });
       return true;
     } catch (error) {
-      console.error("Erro ao sincronizar lote:", error);
+      console.error("Erro ao sincronizar:", error);
       return false;
     }
   }
