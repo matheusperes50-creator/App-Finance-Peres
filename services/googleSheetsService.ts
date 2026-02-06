@@ -1,18 +1,19 @@
 
 import { Transaction } from "../types";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwkkqQLWU-fTZbx3cftjHHpd5xZ33dHNWldWwVSbwciWkDlIoZ7ngbqds_Gqjwq-uQZ/exec";
+// URL fornecida pelo usuário para o Google Apps Script
+const API_URL = "https://script.google.com/macros/s/AKfycbwq_gGJ6PlQ1WfI53Qpm14RImHRYbzXuHvf39QeQt-fl5o8BWrGNJODQj85o7WWFgiS/exec";
 
 export const sheetsService = {
   async getAll(): Promise<Transaction[]> {
-    if (!API_URL || API_URL.includes("SUA_URL_AQUI")) return [];
+    if (!API_URL) return [];
     try {
       const response = await fetch(API_URL, {
         method: "GET",
         mode: "cors",
-        cache: "no-cache",
         redirect: "follow"
       });
+      
       if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
       const data = await response.json();
       
@@ -22,35 +23,38 @@ export const sheetsService = {
         ...t,
         id: t.id ? t.id.toString() : Math.random().toString(36).substr(2, 9),
         valor: typeof t.valor === 'string' ? parseFloat(t.valor.replace(',', '.')) : (parseFloat(t.valor) || 0),
-        data: t.data || new Date().toISOString().split('T')[0],
+        data: t.data ? t.data.toString().split('T')[0] : new Date().toISOString().split('T')[0],
         tipo: t.tipo || 'Despesa',
         status: t.status || 'Pendente',
-        categoria: t.categoria || 'Outro'
+        categoria: t.categoria || 'Outro',
+        frequencia: t.frequencia || 'Esporádico'
       }));
     } catch (error) {
-      console.error("Erro ao carregar dados do Google Sheets:", error);
-      throw error;
+      console.error("Erro ao carregar do Google Sheets:", error);
+      const localData = localStorage.getItem('ff_transactions');
+      return localData ? JSON.parse(localData) : [];
     }
   },
 
   async save(transaction: Transaction): Promise<boolean> {
-    if (!API_URL || API_URL.includes("SUA_URL_AQUI")) return false;
+    if (!API_URL) return false;
     try {
+      // Usamos 'text/plain' para evitar pre-flight OPTIONS que o Google Script não suporta bem com CORS padrão
       await fetch(API_URL, {
         method: "POST",
-        mode: "no-cors",
+        mode: "no-cors", 
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "save", payload: transaction })
       });
       return true; 
     } catch (error) {
-      console.error("Erro ao salvar no Google Sheets:", error);
+      console.error("Erro ao salvar:", error);
       return false;
     }
   },
 
   async delete(id: string): Promise<boolean> {
-    if (!API_URL || API_URL.includes("SUA_URL_AQUI")) return false;
+    if (!API_URL) return false;
     try {
       await fetch(API_URL, {
         method: "POST",
@@ -60,13 +64,13 @@ export const sheetsService = {
       });
       return true;
     } catch (error) {
-      console.error("Erro ao deletar no Google Sheets:", error);
+      console.error("Erro ao deletar:", error);
       return false;
     }
   },
 
   async syncAll(transactions: Transaction[]): Promise<boolean> {
-    if (!API_URL || API_URL.includes("SUA_URL_AQUI")) return false;
+    if (!API_URL) return false;
     try {
       await fetch(API_URL, {
         method: "POST",
@@ -76,7 +80,7 @@ export const sheetsService = {
       });
       return true;
     } catch (error) {
-      console.error("Erro ao sincronizar lote no Google Sheets:", error);
+      console.error("Erro ao sincronizar lote:", error);
       return false;
     }
   }

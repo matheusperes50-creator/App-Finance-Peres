@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Transaction } from './types.ts';
 import Dashboard from './components/Dashboard.tsx';
@@ -15,7 +16,7 @@ const App: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  // Data formatada para exibição na sidebar
+  // Data do dia formatada dinamicamente
   const currentDateFormatted = useMemo(() => {
     return new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',
@@ -24,18 +25,18 @@ const App: React.FC = () => {
     }).format(new Date());
   }, []);
 
-  // 1. Inicialização imediata do LocalStorage
+  // Estado das transações com persistência LocalStorage
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('ff_transactions');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // 2. Persistência local automática em cada mudança
+  // Salvar no LocalStorage sempre que houver mudança
   useEffect(() => {
     localStorage.setItem('ff_transactions', JSON.stringify(transactions));
   }, [transactions]);
 
-  // 3. Carregamento e Sincronização com a Planilha
+  // Carregar dados da planilha ao iniciar
   const loadData = useCallback(async () => {
     setSyncStatus('syncing');
     try {
@@ -45,7 +46,6 @@ const App: React.FC = () => {
         setSyncStatus('online');
       }
     } catch (error) {
-      console.error("Erro na sincronização inicial:", error);
       setSyncStatus('offline');
     } finally {
       setIsLoading(false);
@@ -61,30 +61,31 @@ const App: React.FC = () => {
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
       if (!t.data) return false;
-      const [year, month] = t.data.split('-').map(Number);
+      const datePart = t.data.toString().split('T')[0];
+      const [year, month] = datePart.split('-').map(Number);
       return (month - 1) === selectedMonth && year === selectedYear;
     });
   }, [transactions, selectedMonth, selectedYear]);
 
-  // 4. Operações com feedback visual e persistência
+  // Ações em Tempo Real: Atualiza interface primeiro, depois envia para o Google
   const addTransaction = async (t: Omit<Transaction, 'id'>) => {
-    setSyncStatus('syncing');
     const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
-    setTransactions(prev => [newTransaction, ...prev]);
+    setTransactions(prev => [newTransaction, ...prev]); // Atualização instantânea na UI
+    setSyncStatus('syncing');
     const success = await sheetsService.save(newTransaction);
     setSyncStatus(success ? 'online' : 'offline');
   };
 
   const updateTransaction = async (updated: Transaction) => {
-    setSyncStatus('syncing');
     setTransactions(prev => prev.map(t => t.id === updated.id ? updated : t));
+    setSyncStatus('syncing');
     const success = await sheetsService.save(updated);
     setSyncStatus(success ? 'online' : 'offline');
   };
 
   const deleteTransaction = async (id: string) => {
-    setSyncStatus('syncing');
     setTransactions(prev => prev.filter(t => t.id !== id));
+    setSyncStatus('syncing');
     const success = await sheetsService.delete(id);
     setSyncStatus(success ? 'online' : 'offline');
   };
@@ -94,7 +95,7 @@ const App: React.FC = () => {
     setSyncStatus('syncing');
     const success = await sheetsService.syncAll(transactions);
     setSyncStatus(success ? 'online' : 'offline');
-    if(success) alert("Planilha atualizada com todos os dados locais!");
+    if(success) alert("Planilha totalmente atualizada!");
   };
 
   if (isHome) {
@@ -104,14 +105,15 @@ const App: React.FC = () => {
           <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </div>
         <h1 className="text-4xl font-black text-slate-800 mb-2 tracking-tight">Finance<span className="text-brand-500">Peres</span></h1>
-        <p className="text-slate-400 max-w-sm mb-12 font-medium">Sua vida financeira organizada e salva em tempo real.</p>
-        <button onClick={() => setIsHome(false)} className="w-full max-w-xs py-5 bg-brand-500 text-white rounded-2xl font-black text-lg shadow-xl hover:bg-brand-600 transition-all active:scale-95">Entrar no App</button>
+        <p className="text-slate-400 max-w-sm mb-12 font-medium">Sua vida financeira salva em tempo real na sua planilha.</p>
+        <button onClick={() => setIsHome(false)} className="w-full max-w-xs py-5 bg-brand-500 text-white rounded-2xl font-black text-lg shadow-xl hover:bg-brand-600 transition-all active:scale-95">Acessar Sistema</button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#f8fafc]">
+      {/* Sidebar */}
       <aside className="w-full md:w-72 bg-white border-r border-slate-100 flex flex-col sticky top-0 md:h-screen z-20">
         <div className="p-8">
           <div className="mb-10">
@@ -119,11 +121,13 @@ const App: React.FC = () => {
               <div className="w-9 h-9 bg-brand-500 rounded-xl flex items-center justify-center text-white font-black">FP</div>
               <h1 className="text-xl font-black tracking-tight text-slate-800">Finance<span className="text-brand-500">Peres</span></h1>
             </div>
-            <p className="text-[11px] font-semibold text-slate-400 mt-2 ml-1">
+            {/* Data do dia discreta abaixo do nome */}
+            <p className="text-[11px] font-bold text-slate-400 mt-2 ml-0.5 tracking-tight">
               {currentDateFormatted}
             </p>
           </div>
           
+          {/* Status de Sincronização */}
           <div className={`flex items-center gap-3 p-4 rounded-2xl border transition-all mb-8 ${syncStatus === 'online' ? 'bg-emerald-50 border-emerald-100' : syncStatus === 'syncing' ? 'bg-amber-50 border-amber-100' : 'bg-rose-50 border-rose-100'}`}>
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${syncStatus === 'online' ? 'bg-emerald-500' : syncStatus === 'syncing' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500'} text-white`}>
               {syncStatus === 'online' ? (
@@ -135,21 +139,11 @@ const App: React.FC = () => {
               )}
             </div>
             <div className="flex-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sincronização</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Planilha</p>
               <p className={`text-xs font-black uppercase tracking-tight ${syncStatus === 'online' ? 'text-emerald-600' : syncStatus === 'syncing' ? 'text-amber-600' : 'text-rose-600'}`}>
-                {syncStatus === 'online' ? 'Atualizado' : syncStatus === 'syncing' ? 'Sincronizando' : 'Erro na Nuvem'}
+                {syncStatus === 'online' ? 'Sincronizado' : syncStatus === 'syncing' ? 'Salvando...' : 'Erro de Link'}
               </p>
             </div>
-            <button 
-              onClick={handleFullSync} 
-              disabled={syncStatus === 'syncing'}
-              className="p-1.5 text-slate-400 hover:text-brand-600 transition-colors rounded-lg hover:bg-white/50"
-              title="Forçar Sincronização Total"
-            >
-               <svg className={`w-4 h-4 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-               </svg>
-            </button>
           </div>
 
           <nav className="space-y-1">
@@ -169,10 +163,11 @@ const App: React.FC = () => {
         </div>
       </aside>
 
+      {/* Main Content */}
       <main className="flex-1 p-6 md:p-12 overflow-y-auto max-h-screen">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <h2 className="text-3xl font-black text-slate-800">
+            <h2 className="text-3xl font-black text-slate-800 tracking-tight">
               {activeTab === 'dashboard' ? 'Dashboard' : activeTab === 'transactions' ? 'Lançamentos' : 'Investimentos'}
             </h2>
             <div className="flex items-center gap-2 mt-2">
@@ -182,18 +177,18 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex gap-2">
-            <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="bg-white border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold outline-none shadow-sm">
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="bg-white border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold outline-none shadow-sm focus:border-brand-500">
               {monthNames.map((name, i) => <option key={i} value={i}>{name}</option>)}
             </select>
             <button onClick={() => setHideValues(!hideValues)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-brand-500 transition-all shadow-sm">
               {hideValues ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268-2.943-9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268-2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
               ) : (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
               )}
             </button>
-            <button onClick={loadData} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-brand-500 transition-all shadow-sm" title="Recarregar Dados">
-               <svg className={`w-5 h-5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <button onClick={loadData} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-brand-500 transition-all shadow-sm" title="Recarregar">
+               <svg className={`w-5 h-5 ${syncStatus === 'syncing' ? 'animate-spin text-brand-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             </button>
           </div>
         </header>
@@ -211,11 +206,11 @@ const App: React.FC = () => {
               if (t) updateTransaction({ ...t, status: t.status === 'Pago' ? 'Pendente' : 'Pago' });
             }}
             onCopyPrevious={async () => {
-              setSyncStatus('syncing');
               let pm = selectedMonth - 1, py = selectedYear;
               if (pm < 0) { pm = 11; py--; }
               const prev = transactions.filter(t => {
-                const [y, m] = t.data.split('-').map(Number);
+                const datePart = t.data.toString().split('T')[0];
+                const [y, m] = datePart.split('-').map(Number);
                 return (m - 1) === pm && y === py && t.tipo !== 'Investimento';
               });
               const safeMonth = (selectedMonth + 1).toString().padStart(2, '0');
@@ -223,8 +218,10 @@ const App: React.FC = () => {
               const newEntries: Transaction[] = prev.map(t => ({
                 ...t, id: Math.random().toString(36).substr(2, 9), data: newDate, status: 'Pendente' as const
               }));
-              setTransactions(prevList => [...newEntries, ...prevList]);
-              const success = await sheetsService.syncAll([...newEntries, ...transactions]);
+              const updatedList = [...newEntries, ...transactions];
+              setTransactions(updatedList);
+              setSyncStatus('syncing');
+              const success = await sheetsService.syncAll(updatedList);
               setSyncStatus(success ? 'online' : 'offline');
             }}
             defaultMonth={selectedMonth} 
