@@ -1,10 +1,22 @@
 import { Transaction } from "../types";
 
+const API_URL = "https://script.google.com/macros/s/AKfycbyRZwkY1-CG8MDNCF-2QbMYGVK9pcI-MgcvG4HsICO46FGY4n255Gzjr5YMiU_bKlNjow/exec";
+
 /**
- * URL da planilha do Google Sheets utilizada como banco de dados.
- * Atualizada conforme solicitação do usuário.
+ * Normaliza as chaves de um objeto para minúsculas e remove acentos comuns
+ * para garantir compatibilidade com os cabeçalhos da planilha.
  */
-const API_URL = "https://script.google.com/macros/s/AKfycbzGLXVNSW83zlD7fwRGX2lTNAwGCsfRoMsiDpLVdCwfwty5-iN8Aarjo7SkcUEt-jfGnw/exec";
+const normalizeKeys = (obj: any) => {
+  const normalized: any = {};
+  for (const key in obj) {
+    const normalizedKey = key
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+    normalized[normalizedKey] = obj[key];
+  }
+  return normalized;
+};
 
 export const sheetsService = {
   async getAll(): Promise<Transaction[]> {
@@ -16,31 +28,36 @@ export const sheetsService = {
         cache: "no-store"
       });
       
-      if (!response.ok) {
-        throw new Error(`Erro na rede: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Erro na rede: ${response.status}`);
 
       const data = await response.json();
-      
-      if (!Array.isArray(data)) {
-        console.warn("Dados inválidos do servidor.");
-        return [];
-      }
+      if (!Array.isArray(data)) return [];
 
-      return data.map((t: any) => ({
-        ...t,
-        id: t.id ? t.id.toString() : Math.random().toString(36).substr(2, 9),
-        valor: typeof t.valor === 'string' ? parseFloat(t.valor.replace(',', '.')) : (parseFloat(t.valor) || 0),
-        data: t.data ? t.data.toString().split('T')[0] : new Date().toISOString().split('T')[0],
-        tipo: t.tipo || 'Despesa',
-        status: t.status || 'Pendente',
-        categoria: t.categoria || 'Outro',
-        frequencia: t.frequencia || 'Esporádico'
-      }));
+      return data.map((item: any) => {
+        const t = normalizeKeys(item);
+        
+        // Parsing robusto do valor
+        let valorNumerico = 0;
+        if (typeof t.valor === 'number') {
+          valorNumerico = t.valor;
+        } else if (typeof t.valor === 'string') {
+          valorNumerico = parseFloat(t.valor.replace(',', '.')) || 0;
+        }
+
+        return {
+          id: t.id ? t.id.toString() : Math.random().toString(36).substr(2, 9),
+          descricao: t.descricao || t.description || "Sem descrição",
+          valor: valorNumerico,
+          data: t.data ? t.data.toString().split('T')[0] : new Date().toISOString().split('T')[0],
+          tipo: t.tipo || 'Despesa',
+          status: t.status || 'Pendente',
+          categoria: t.categoria || 'Outro',
+          frequencia: t.frequencia || 'Esporádico'
+        } as Transaction;
+      });
     } catch (error) {
-      console.error("Erro na sincronização Google Sheets:", error);
-      const localData = localStorage.getItem('ff_transactions');
-      return localData ? JSON.parse(localData) : [];
+      console.error("Erro ao buscar dados do Google Sheets:", error);
+      throw error;
     }
   },
 
@@ -49,13 +66,13 @@ export const sheetsService = {
     try {
       await fetch(API_URL, {
         method: "POST",
-        mode: "no-cors", 
+        mode: "no-cors",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "save", payload: transaction })
       });
-      return true; 
+      return true;
     } catch (error) {
-      console.error("Erro ao salvar:", error);
+      console.error("Erro ao salvar no Sheets:", error);
       return false;
     }
   },
@@ -71,7 +88,7 @@ export const sheetsService = {
       });
       return true;
     } catch (error) {
-      console.error("Erro ao deletar:", error);
+      console.error("Erro ao deletar no Sheets:", error);
       return false;
     }
   },
@@ -87,7 +104,7 @@ export const sheetsService = {
       });
       return true;
     } catch (error) {
-      console.error("Erro ao sincronizar:", error);
+      console.error("Erro ao sincronizar tudo no Sheets:", error);
       return false;
     }
   }

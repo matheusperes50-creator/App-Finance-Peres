@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Transaction } from './types.ts';
 import Dashboard from './components/Dashboard.tsx';
 import TransactionList from './components/TransactionList.tsx';
@@ -15,43 +15,64 @@ const App: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const currentDateFormatted = useMemo(() => {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    }).format(new Date());
-  }, []);
+  const hasLoadedInitialData = useRef(false);
 
+  // Carrega transações do LocalStorage apenas como fallback imediato
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('ff_transactions');
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Salva no localStorage sempre que as transações mudarem
   useEffect(() => {
     localStorage.setItem('ff_transactions', JSON.stringify(transactions));
   }, [transactions]);
 
-  const loadData = useCallback(async () => {
+  /**
+   * Função principal de carregamento de dados da Nuvem
+   * Removida a dependência de [transactions] para evitar loops e garantir consistência
+   */
+  const loadData = useCallback(async (isManualRefresh = false) => {
     setSyncStatus('syncing');
+    if (isManualRefresh) setIsLoading(true);
+
     try {
       const remoteData = await sheetsService.getAll();
+      
       if (Array.isArray(remoteData)) {
-        setTransactions(remoteData);
-        setSyncStatus('online');
+        if (remoteData.length > 0) {
+          // Só atualizamos se realmente vieram dados úteis
+          setTransactions(remoteData);
+          setSyncStatus('online');
+        } else {
+          // Se a planilha estiver vazia, verificamos se o usuário clicou em atualizar manualmente
+          // Se não foi manual, tentamos subir o que temos local (primeiro acesso com planilha nova)
+          setTransactions(current => {
+            if (current.length > 0 && !isManualRefresh) {
+              console.log("Planilha vazia detectada. Sincronizando dados locais...");
+              sheetsService.syncAll(current);
+            }
+            return current;
+          });
+          setSyncStatus('online');
+        }
       } else {
         setSyncStatus('offline');
       }
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      console.error("Falha ao carregar dados da nuvem:", error);
       setSyncStatus('offline');
     } finally {
       setIsLoading(false);
+      hasLoadedInitialData.current = true;
     }
-  }, []);
+  }, []); // Sem dependências para garantir estabilidade
 
-  useEffect(() => { 
-    loadData(); 
+  // Efeito de inicialização
+  useEffect(() => {
+    if (!hasLoadedInitialData.current) {
+      loadData();
+    }
   }, [loadData]);
 
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -69,40 +90,22 @@ const App: React.FC = () => {
     const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
     setTransactions(prev => [newTransaction, ...prev]);
     setSyncStatus('syncing');
-    try {
-      const success = await sheetsService.save(newTransaction);
-      if (!success) throw new Error("Falha ao salvar na planilha");
-      setSyncStatus('online');
-    } catch (error) {
-      console.error("Erro ao gravar dados:", error);
-      setSyncStatus('offline');
-    }
+    const success = await sheetsService.save(newTransaction);
+    setSyncStatus(success ? 'online' : 'offline');
   };
 
   const updateTransaction = async (updated: Transaction) => {
     setTransactions(prev => prev.map(t => t.id === updated.id ? updated : t));
     setSyncStatus('syncing');
-    try {
-      const success = await sheetsService.save(updated);
-      if (!success) throw new Error("Falha ao atualizar na planilha");
-      setSyncStatus('online');
-    } catch (error) {
-      console.error("Erro ao atualizar dados:", error);
-      setSyncStatus('offline');
-    }
+    const success = await sheetsService.save(updated);
+    setSyncStatus(success ? 'online' : 'offline');
   };
 
   const deleteTransaction = async (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
     setSyncStatus('syncing');
-    try {
-      const success = await sheetsService.delete(id);
-      if (!success) throw new Error("Falha ao deletar na planilha");
-      setSyncStatus('online');
-    } catch (error) {
-      console.error("Erro ao deletar dados:", error);
-      setSyncStatus('offline');
-    }
+    const success = await sheetsService.delete(id);
+    setSyncStatus(success ? 'online' : 'offline');
   };
 
   if (isHome) {
@@ -120,6 +123,13 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-[#f8fafc] overflow-hidden">
+      {isLoading && hasLoadedInitialData.current === false && (
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[200] flex flex-col items-center justify-center">
+          <div className="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-500 font-bold animate-pulse">Sincronizando com Google Sheets...</p>
+        </div>
+      )}
+
       <aside className="w-full md:w-72 bg-white border-b md:border-b-0 md:border-r border-slate-100 flex flex-col sticky top-0 md:h-screen z-20">
         <div className="p-4 md:p-8">
           <div className="mb-4 md:mb-10 flex flex-row md:flex-col justify-between items-center md:items-start">
@@ -129,11 +139,11 @@ const App: React.FC = () => {
                 <h1 className="text-base md:text-xl font-black tracking-tight text-slate-800">Finance<span className="text-brand-500">Peres</span></h1>
               </div>
               <p className="hidden md:block text-[11px] font-bold text-slate-400 mt-2 ml-0.5 tracking-tight">
-                {currentDateFormatted}
+                Data: {new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long' }).format(new Date())}
               </p>
             </div>
             
-            <div className={`md:hidden flex items-center gap-2 px-3 py-1 rounded-full border ${syncStatus === 'online' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
+            <div className={`md:hidden flex items-center gap-2 px-3 py-1 rounded-full border ${syncStatus === 'online' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : syncStatus === 'syncing' ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
               <div className={`w-2 h-2 rounded-full ${syncStatus === 'online' ? 'bg-emerald-500' : syncStatus === 'syncing' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500'}`}></div>
               <span className="text-[9px] font-black uppercase tracking-tighter">{syncStatus}</span>
             </div>
@@ -152,7 +162,7 @@ const App: React.FC = () => {
             <div className="flex-1 overflow-hidden">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Planilha</p>
               <p className={`text-xs font-black uppercase truncate tracking-tight ${syncStatus === 'online' ? 'text-emerald-600' : syncStatus === 'syncing' ? 'text-amber-600' : 'text-rose-600'}`}>
-                {syncStatus === 'online' ? 'Conectado' : syncStatus === 'syncing' ? 'Buscando...' : 'Erro'}
+                {syncStatus === 'online' ? 'Atualizado' : syncStatus === 'syncing' ? 'Sincronizando' : 'Desconectado'}
               </p>
             </div>
           </div>
@@ -194,10 +204,10 @@ const App: React.FC = () => {
               {hideValues ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268-2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
               )}
             </button>
-            <button onClick={loadData} title="Sincronizar" className="p-2 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-brand-500 transition-all shadow-sm">
+            <button onClick={() => loadData(true)} title="Forçar Sincronização" className="p-2 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-brand-500 transition-all shadow-sm">
                <svg className={`w-5 h-5 ${syncStatus === 'syncing' ? 'animate-spin text-brand-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             </button>
           </div>
