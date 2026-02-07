@@ -11,7 +11,20 @@ interface Props {
   monthName: string;
 }
 
-const COLORS = ['#1ebf61', '#34d399', '#f59e0b', '#ef4444', '#10b981', '#f97316', '#06b6d4', '#8b5cf6', '#6366f1'];
+// Paleta de cores com alto contraste para melhor distinção entre categorias
+const COLORS = [
+  '#1ebf61', // Verde Brand
+  '#f43f5e', // Rose
+  '#6366f1', // Indigo
+  '#f59e0b', // Amber
+  '#8b5cf6', // Violet
+  '#06b6d4', // Cyan
+  '#d946ef', // Fuchsia
+  '#84cc16', // Lime
+  '#0ea5e9', // Sky
+  '#f97316', // Orange
+  '#64748b'  // Slate
+];
 
 const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success'>('idle');
@@ -143,7 +156,7 @@ const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => 
             <ResponsiveContainer width="100%" height="100%" minHeight={250}>
               <PieChart>
                 <Pie data={categoryData} cx="50%" cy="50%" innerRadius="55%" outerRadius="80%" paddingAngle={4} dataKey="value">
-                  {categoryData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} strokeWidth={0} />)}
+                  {categoryData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} strokeWidth={0} />)}
                 </Pie>
                 <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                 <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 9, fontWeight: 700, paddingTop: 20 }} />
