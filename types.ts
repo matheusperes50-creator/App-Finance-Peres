@@ -27,7 +27,19 @@ export interface FinancialInsight {
 }
 
 export const CATEGORIES = {
-  INCOME: ['Salário', 'Freelance', 'Investimento', 'Presente', 'Outro'],
-  EXPENSE: ['Moradia', 'Alimentação', 'Transporte', 'Utilidades', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Outro'],
+  INCOME: ['Salário', 'Fotografia', 'Outro'],
+  EXPENSE: [
+    'Lanche',
+    'Compras mercado',
+    'Lazer',
+    'Moradia',
+    'Utilidades José',
+    'Utilidades geral',
+    'Carro',
+    'Cartão de crédito',
+    'Saúde',
+    'Alimentação',
+    'Outro'
+  ],
   INVESTMENT: ['Reserva de Emergência', 'Renda Fixa', 'Ações', 'Fundos Imobiliários', 'Criptoativos', 'Previdência', 'Outro']
 };

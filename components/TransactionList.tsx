@@ -35,14 +35,16 @@ const TransactionList: React.FC<Props> = ({
   // Estados de Filtro
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [filterFrequency, setFilterFrequency] = useState('Todas');
+  const [filterStatus, setFilterStatus] = useState('Todas');
 
   // Filtra as transações com base na aba (apenas Receitas/Despesas) e nos filtros do usuário
   const displayTransactions = useMemo(() => {
     return transactions
       .filter(t => t.tipo !== 'Investimento')
       .filter(t => filterCategory === 'Todas' || t.categoria === filterCategory)
-      .filter(t => filterFrequency === 'Todas' || t.frequencia === filterFrequency);
-  }, [transactions, filterCategory, filterFrequency]);
+      .filter(t => filterFrequency === 'Todas' || t.frequencia === filterFrequency)
+      .filter(t => filterStatus === 'Todas' || t.status === filterStatus);
+  }, [transactions, filterCategory, filterFrequency, filterStatus]);
 
   const allCategories = useMemo(() => {
     return ['Todas', ...CATEGORIES.INCOME, ...CATEGORIES.EXPENSE].filter((v, i, a) => a.indexOf(v) === i);
@@ -175,6 +177,18 @@ const TransactionList: React.FC<Props> = ({
                 <option value="Todas">Todas</option>
                 <option value="Fixo">Fixo</option>
                 <option value="Esporádico">Esporádico</option>
+              </select>
+            </div>
+            <div className="flex-1 sm:flex-none">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Status</label>
+              <select 
+                value={filterStatus} 
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-[11px] font-bold outline-none focus:border-brand-500"
+              >
+                <option value="Todas">Todas</option>
+                <option value="Pago">Pago</option>
+                <option value="Pendente">Pendente</option>
               </select>
             </div>
             <div className="flex bg-slate-100 p-1 rounded-xl self-end">
