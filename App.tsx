@@ -129,7 +129,7 @@ const App: React.FC = () => {
         <div className="w-20 h-20 bg-brand-500 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-brand-500/20">
           <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </div>
-        <h1 className="text-4xl font-black text-slate-100 mb-2 tracking-tight">Finance<span className="text-brand-500">Peres</span></h1>
+        <h1 className="text-4xl font-black text-slate-100 mb-2 tracking-tight">Controle<span className="text-brand-500">Financeiro</span></h1>
         <p className="text-slate-400 max-w-sm mb-12 font-medium">Controle financeiro inteligente integrado ao Google Sheets.</p>
         <button onClick={() => setIsHome(false)} className="w-full max-w-xs py-5 bg-brand-500 text-white rounded-2xl font-black text-lg shadow-xl hover:bg-brand-600 transition-all active:scale-95">Acessar Sistema</button>
       </div>
@@ -150,8 +150,8 @@ const App: React.FC = () => {
           <div className="mb-4 md:mb-10 flex flex-row md:flex-col justify-between items-center md:items-start">
             <div>
               <div className="flex items-center gap-2 md:gap-3">
-                <div className="w-8 h-8 md:w-9 md:h-9 bg-brand-500 rounded-xl flex items-center justify-center text-white font-black text-sm">FP</div>
-                <h1 className="text-base md:text-xl font-black tracking-tight text-slate-100">Finance<span className="text-brand-500">Peres</span></h1>
+                <div className="w-8 h-8 md:w-9 md:h-9 bg-brand-500 rounded-xl flex items-center justify-center text-white font-black text-sm">CF</div>
+                <h1 className="text-base md:text-xl font-black tracking-tight text-slate-100">Controle<span className="text-brand-500">Financeiro</span></h1>
               </div>
               <p className="hidden md:block text-[11px] font-bold text-slate-500 mt-2 ml-0.5 tracking-tight">
                 Data: {new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long' }).format(new Date())}
@@ -177,42 +177,21 @@ const App: React.FC = () => {
               </div>
               <div className="flex-1 overflow-hidden">
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Planilha</p>
-                <p className={`text-xs font-black uppercase truncate tracking-tight ${syncStatus === 'online' ? 'text-emerald-500' : syncStatus === 'syncing' ? 'text-amber-500' : 'text-rose-500'}`}>
-                  {syncStatus === 'online' ? 'Atualizado' : syncStatus === 'syncing' ? 'Sincronizando' : 'Desconectado'}
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className={`text-xs font-black uppercase truncate tracking-tight ${syncStatus === 'online' ? 'text-emerald-500' : syncStatus === 'syncing' ? 'text-amber-500' : 'text-rose-500'}`}>
+                    {syncStatus === 'online' ? 'Atualizado' : syncStatus === 'syncing' ? 'Sincronizando' : 'Desconectado'}
+                  </p>
+                  <button 
+                    onClick={loadData} 
+                    disabled={syncStatus === 'syncing'}
+                    className="p-1 text-slate-500 hover:text-slate-100 disabled:opacity-50 transition-colors"
+                    title="Sincronizar Agora"
+                  >
+                    <svg className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                  </button>
+                </div>
               </div>
             </div>
-            
-            <button 
-              onClick={loadData} 
-              disabled={syncStatus === 'syncing'}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-700"
-            >
-              <svg className={`w-3 h-3 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-              Sincronizar Agora
-            </button>
-
-            <button 
-              onClick={async () => {
-                setSyncStatus('syncing');
-                const success = await sheetsService.syncAll(transactions);
-                setSyncStatus(success ? 'online' : 'offline');
-              }} 
-              disabled={syncStatus === 'syncing'}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-brand-500/10 hover:bg-brand-500/20 disabled:opacity-50 text-brand-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-brand-500/20"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-              Salvar Tudo na Planilha
-            </button>
-
-            <button 
-              onClick={clearAllData}
-              disabled={syncStatus === 'syncing'}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 text-rose-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-rose-500/20"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-              Zerar Todos os Dados
-            </button>
           </div>
 
           <nav className="flex md:flex-col gap-1 md:gap-1.5 overflow-x-auto no-scrollbar md:overflow-visible pb-2 md:pb-0">
@@ -364,31 +343,6 @@ const App: React.FC = () => {
                 <span>Sincronizar Agora</span>
                 <svg className={`w-4 h-4 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
               </button>
-
-              <button 
-                onClick={async () => {
-                  setSyncStatus('syncing');
-                  const success = await sheetsService.syncAll(transactions);
-                  setSyncStatus(success ? 'online' : 'offline');
-                  if (success) setShowSettings(false);
-                }} 
-                disabled={syncStatus === 'syncing'}
-                className="w-full flex items-center justify-between p-4 bg-brand-500/10 hover:bg-brand-500/20 disabled:opacity-50 text-brand-500 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border border-brand-500/20"
-              >
-                <span>Salvar Tudo na Planilha</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-              </button>
-
-              <div className="pt-4 border-t border-slate-800">
-                <button 
-                  onClick={() => { clearAllData(); setShowSettings(false); }}
-                  disabled={syncStatus === 'syncing'}
-                  className="w-full flex items-center justify-between p-4 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 text-rose-500 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border border-rose-500/20"
-                >
-                  <span>Zerar Todos os Dados</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
-              </div>
             </div>
           </div>
         </div>
