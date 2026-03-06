@@ -93,10 +93,10 @@ const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => 
       <div className="flex justify-end">
         <button 
           onClick={handleWhatsAppReport}
-          className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-100 border ${
+          className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-slate-950/20 border ${
             copyStatus === 'success' 
-            ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-100' 
-            : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'
+            ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/20' 
+            : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
           }`}
         >
           {copyStatus === 'success' ? (
@@ -114,52 +114,52 @@ const Dashboard: React.FC<Props> = ({ transactions, hideValues, monthName }) => 
       </div>
 
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-50 overflow-hidden">
-          <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:mb-2">Saldo Mensal</p>
-          <h3 className={`text-lg sm:text-xl font-black truncate ${summary.income - summary.expense - summary.investment >= 0 ? 'text-slate-800' : 'text-rose-500'}`}>
+        <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-800 overflow-hidden">
+          <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-2">Saldo Mensal</p>
+          <h3 className={`text-lg sm:text-xl font-black truncate ${summary.income - summary.expense - summary.investment >= 0 ? 'text-slate-100' : 'text-rose-500'}`}>
             {formatValue(summary.income - summary.expense - summary.investment)}
           </h3>
         </div>
-        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-50 overflow-hidden">
-          <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:mb-2">Receitas</p>
+        <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-800 overflow-hidden">
+          <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-2">Receitas</p>
           <h3 className="text-lg sm:text-xl font-black text-brand-500 truncate">{formatValue(summary.income)}</h3>
         </div>
-        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-50 overflow-hidden">
-          <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:mb-2">Despesas</p>
+        <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-800 overflow-hidden">
+          <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-2">Despesas</p>
           <h3 className="text-lg sm:text-xl font-black text-rose-500 truncate">{formatValue(summary.expense)}</h3>
         </div>
-        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-50 overflow-hidden">
-          <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:mb-2">Aportes</p>
+        <div className="bg-slate-900 p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-800 overflow-hidden">
+          <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-2">Aportes</p>
           <h3 className="text-lg sm:text-xl font-black text-indigo-500 truncate">{formatValue(summary.investment)}</h3>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-50 flex flex-col min-h-[350px]">
-          <h4 className="font-black text-slate-800 mb-6 uppercase text-[10px] tracking-widest">Fluxo do Mês</h4>
+        <div className="bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-800 flex flex-col min-h-[350px]">
+          <h4 className="font-black text-slate-100 mb-6 uppercase text-[10px] tracking-widest">Fluxo do Mês</h4>
           <div className="flex-1 w-full">
             <ResponsiveContainer width="100%" height="100%" minHeight={250}>
               <BarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} />
                 <YAxis hide />
-                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                <Tooltip cursor={{ fill: '#0f172a' }} contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.5)' }} />
                 <Bar dataKey="val" radius={[6, 6, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-50 flex flex-col min-h-[350px]">
-          <h4 className="font-black text-slate-800 mb-6 uppercase text-[10px] tracking-widest">Distribuição</h4>
+        <div className="bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-800 flex flex-col min-h-[350px]">
+          <h4 className="font-black text-slate-100 mb-6 uppercase text-[10px] tracking-widest">Distribuição</h4>
           <div className="flex-1 w-full">
             <ResponsiveContainer width="100%" height="100%" minHeight={250}>
               <PieChart>
                 <Pie data={categoryData} cx="50%" cy="50%" innerRadius="55%" outerRadius="80%" paddingAngle={4} dataKey="value">
                   {categoryData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} strokeWidth={0} />)}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 9, fontWeight: 700, paddingTop: 20 }} />
+                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.5)' }} />
+                <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 9, fontWeight: 700, paddingTop: 20, color: '#94a3b8' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
