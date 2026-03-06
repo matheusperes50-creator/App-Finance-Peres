@@ -18,13 +18,25 @@ const App: React.FC = () => {
 
   const hasLoadedInitialData = useRef(false);
 
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('ff_transactions');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('ff_transactions');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Erro ao carregar dados locais:", e);
+      return [];
+    }
   });
 
+  // Persistência local robusta
   useEffect(() => {
-    localStorage.setItem('ff_transactions', JSON.stringify(transactions));
+    try {
+      localStorage.setItem('ff_transactions', JSON.stringify(transactions));
+    } catch (e) {
+      console.error("Erro ao salvar dados locais:", e);
+    }
   }, [transactions]);
 
   const loadData = useCallback(async () => {
@@ -33,22 +45,44 @@ const App: React.FC = () => {
       const remoteData = await sheetsService.getAll();
       
       if (Array.isArray(remoteData)) {
-        if (remoteData.length > 0) {
-          setTransactions(remoteData);
-        } else {
-          setTransactions(current => {
-            if (current.length > 0) {
-              sheetsService.syncAll(current);
+        setTransactions(current => {
+          // Mapa para reconciliação
+          const mergedMap = new Map<string, Transaction>();
+          
+          // 1. Adiciona dados atuais (incluindo pendentes)
+          current.forEach(t => mergedMap.set(t.id, t));
+          
+          // 2. Mescla dados remotos
+          remoteData.forEach(remote => {
+            const local = mergedMap.get(remote.id);
+            
+            // Se não existe localmente, adiciona
+            if (!local) {
+              mergedMap.set(remote.id, remote);
+            } 
+            // Se existe remotamente, o servidor é a fonte da verdade
+            // a menos que tenhamos uma alteração local mais recente que ainda não foi sincronizada
+            else {
+              const remoteTime = remote.updatedAt || 0;
+              const localTime = local.updatedAt || 0;
+              
+              if (remoteTime >= localTime) {
+                mergedMap.set(remote.id, { ...remote, pendingSync: false });
+              }
+              // Caso contrário, mantemos o local (que provavelmente tem pendingSync: true)
             }
-            return current;
           });
-        }
+          
+          const merged = Array.from(mergedMap.values());
+          return merged.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+        });
         setSyncStatus('online');
+        setLastSyncTime(new Date());
       } else {
         setSyncStatus('offline');
       }
     } catch (error) {
-      console.error("Erro na sincronização inicial:", error);
+      console.error("Erro na sincronização:", error);
       setSyncStatus('offline');
     } finally {
       setIsLoading(false);
@@ -62,49 +96,120 @@ const App: React.FC = () => {
     }
   }, [loadData]);
 
+  // Polling mais frequente (30s) para manter dados atualizados entre dispositivos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (syncStatus !== 'syncing' && document.visibilityState === 'visible') {
+        loadData();
+      }
+    }, 30000); 
+    
+    return () => clearInterval(interval);
+  }, [loadData, syncStatus]);
+
+  // Tenta sincronizar transações pendentes periodicamente
+  useEffect(() => {
+    const syncPending = async () => {
+      const pending = transactions.filter(t => t.pendingSync);
+      if (pending.length > 0 && syncStatus !== 'syncing') {
+        console.log(`Tentando sincronizar ${pending.length} transações pendentes...`);
+        for (const t of pending) {
+          let success = false;
+          if (t.isDeleted) {
+            success = await sheetsService.delete(t.id);
+            if (success) {
+              setTransactions(prev => prev.filter(item => item.id !== t.id));
+            }
+          } else {
+            success = await sheetsService.save(t);
+            if (success) {
+              setTransactions(prev => prev.map(item => 
+                item.id === t.id ? { ...item, pendingSync: false } : item
+              ));
+            }
+          }
+        }
+      }
+    };
+
+    const interval = setInterval(syncPending, 15000); // Tenta a cada 15 segundos
+    return () => clearInterval(interval);
+  }, [transactions, syncStatus]);
+
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => {
-      if (!t.data) return false;
-      const datePart = t.data.toString().split('T')[0];
-      const [year, month] = datePart.split('-').map(Number);
-      return (month - 1) === selectedMonth && year === selectedYear;
-    });
+    return transactions
+      .filter(t => !t.isDeleted) // Filtra removidos localmente que ainda não foram sincronizados
+      .filter(t => {
+        if (!t.data) return false;
+        const datePart = t.data.toString().split('T')[0];
+        const [year, month] = datePart.split('-').map(Number);
+        return (month - 1) === selectedMonth && year === selectedYear;
+      });
   }, [transactions, selectedMonth, selectedYear]);
 
   const addTransaction = async (t: Omit<Transaction, 'id'>) => {
-    const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) } as Transaction;
-    setTransactions(prev => {
-      const updated = [newTransaction, ...prev];
-      localStorage.setItem('ff_transactions', JSON.stringify(updated));
-      return updated;
-    });
+    const now = Date.now();
+    const newTransaction = { 
+      ...t, 
+      id: Math.random().toString(36).substr(2, 9),
+      pendingSync: true,
+      updatedAt: now
+    } as Transaction;
+
+    setTransactions(prev => [newTransaction, ...prev]);
+    
     setSyncStatus('syncing');
     const success = await sheetsService.save(newTransaction);
-    setSyncStatus(success ? 'online' : 'offline');
+    
+    if (success) {
+      setTransactions(prev => prev.map(item => 
+        item.id === newTransaction.id ? { ...item, pendingSync: false } : item
+      ));
+      setSyncStatus('online');
+      setLastSyncTime(new Date());
+    } else {
+      setSyncStatus('offline');
+    }
   };
 
   const updateTransaction = async (updated: Transaction) => {
-    setTransactions(prev => {
-      const updatedList = prev.map(t => t.id === updated.id ? updated : t);
-      localStorage.setItem('ff_transactions', JSON.stringify(updatedList));
-      return updatedList;
-    });
+    const now = Date.now();
+    const transactionWithPending = { ...updated, pendingSync: true, updatedAt: now };
+    
+    setTransactions(prev => prev.map(t => t.id === updated.id ? transactionWithPending : t));
+    
     setSyncStatus('syncing');
-    const success = await sheetsService.save(updated);
-    setSyncStatus(success ? 'online' : 'offline');
+    const success = await sheetsService.save(transactionWithPending);
+    
+    if (success) {
+      setTransactions(prev => prev.map(item => 
+        item.id === updated.id ? { ...item, pendingSync: false } : item
+      ));
+      setSyncStatus('online');
+      setLastSyncTime(new Date());
+    } else {
+      setSyncStatus('offline');
+    }
   };
 
   const deleteTransaction = async (id: string) => {
-    setTransactions(prev => {
-      const updatedList = prev.filter(t => String(t.id) !== String(id));
-      localStorage.setItem('ff_transactions', JSON.stringify(updatedList));
-      return updatedList;
-    });
+    const now = Date.now();
+    setTransactions(prev => prev.map(t => 
+      t.id === id ? { ...t, isDeleted: true, pendingSync: true, updatedAt: now } : t
+    ));
+    
     setSyncStatus('syncing');
     const success = await sheetsService.delete(id);
-    setSyncStatus(success ? 'online' : 'offline');
+    
+    if (success) {
+      setTransactions(prev => prev.filter(t => t.id !== id));
+      setSyncStatus('online');
+      setLastSyncTime(new Date());
+    } else {
+      setSyncStatus('offline');
+    }
   };
 
   const clearAllData = async () => {
@@ -181,14 +286,21 @@ const App: React.FC = () => {
                   <p className={`text-xs font-black uppercase truncate tracking-tight ${syncStatus === 'online' ? 'text-emerald-500' : syncStatus === 'syncing' ? 'text-amber-500' : 'text-rose-500'}`}>
                     {syncStatus === 'online' ? 'Atualizado' : syncStatus === 'syncing' ? 'Sincronizando' : 'Desconectado'}
                   </p>
-                  <button 
-                    onClick={loadData} 
-                    disabled={syncStatus === 'syncing'}
-                    className="p-1 text-slate-500 hover:text-slate-100 disabled:opacity-50 transition-colors"
-                    title="Sincronizar Agora"
-                  >
-                    <svg className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {lastSyncTime && (
+                      <span className="text-[8px] font-bold text-slate-600">
+                        {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                    <button 
+                      onClick={loadData} 
+                      disabled={syncStatus === 'syncing'}
+                      className="p-1 text-slate-500 hover:text-slate-100 disabled:opacity-50 transition-colors"
+                      title="Sincronizar Agora"
+                    >
+                      <svg className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

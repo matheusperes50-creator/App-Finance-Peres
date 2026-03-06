@@ -11,6 +11,9 @@ export interface Transaction {
   tipo: TransactionType;
   status: TransactionStatus;
   frequencia: TransactionFrequency;
+  pendingSync?: boolean;
+  updatedAt?: number;
+  isDeleted?: boolean;
 }
 
 export interface MonthlyData {

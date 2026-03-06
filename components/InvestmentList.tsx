@@ -141,7 +141,14 @@ const InvestmentList: React.FC<Props> = ({
                         {t.categoria}
                       </span>
                     </td>
-                    <td className="px-8 py-5 font-bold text-slate-100 text-sm">{t.descricao}</td>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-slate-100 text-sm">{t.descricao}</p>
+                        {t.pendingSync && (
+                          <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" title="Sincronização pendente"></div>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase">{formatDateDisplay(t.data)}</td>
                     <td className={`px-8 py-5 font-black text-sm text-indigo-400`}>
                       {hideValues ? 'R$ ••••' : t.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -170,7 +177,12 @@ const InvestmentList: React.FC<Props> = ({
               <div key={t.id} className="p-6 flex flex-col gap-4 hover:bg-slate-800/50 transition-colors">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h5 className="font-black text-slate-100 text-base">{t.descricao}</h5>
+                    <div className="flex items-center gap-2">
+                      <h5 className="font-black text-slate-100 text-base">{t.descricao}</h5>
+                      {t.pendingSync && (
+                        <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" title="Sincronização pendente"></div>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] font-black text-slate-500 uppercase">{formatDateDisplay(t.data)}</span>
                       <span className="w-1 h-1 bg-slate-700 rounded-full"></span>

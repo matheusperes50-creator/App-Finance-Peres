@@ -59,15 +59,20 @@ export const sheetsService = {
           finalDate = finalDate.split('T')[0];
         }
 
+        // ID determinístico se estiver faltando para evitar duplicatas em múltiplos dispositivos
+        const generatedId = `${finalDate}-${(t.descricao || t.description || "sem-nome").toLowerCase().replace(/\s+/g, '-')}-${valorNumerico}`;
+        const finalId = t.id ? t.id.toString() : generatedId;
+
         return {
-          id: t.id ? t.id.toString() : Math.random().toString(36).substr(2, 9),
+          id: finalId,
           descricao: t.descricao || t.description || t.nome || "Sem descrição",
           valor: valorNumerico,
           data: finalDate,
           tipo: t.tipo || t.type || 'Despesa',
           status: finalStatus as any,
           categoria: t.categoria || t.category || 'Outro',
-          frequencia: t.frequencia || t.frequency || 'Esporádico'
+          frequencia: t.frequencia || t.frequency || 'Esporádico',
+          updatedAt: t.updatedat ? Number(t.updatedat) : Date.now()
         } as Transaction;
       });
     } catch (error) {
@@ -79,48 +84,82 @@ export const sheetsService = {
   async save(transaction: Transaction): Promise<boolean> {
     if (!API_URL) return false;
     try {
-      await fetch(API_URL, {
+      const response = await fetch(API_URL, {
         method: "POST",
-        mode: "no-cors",
+        mode: "cors", // Tenta CORS para ver erros
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "save", payload: transaction })
       });
-      return true;
+      
+      // Se o CORS falhar, o fetch vai lançar um erro.
+      // Se o GAS redirecionar (comum), o fetch com 'follow' deve lidar com isso.
+      return response.ok || response.type === 'opaque';
     } catch (error) {
-      console.error("Erro ao salvar no Sheets:", error);
-      return false;
+      console.error("Erro ao salvar no Sheets (tentando fallback no-cors):", error);
+      // Fallback para no-cors se o CORS estrito falhar
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "save", payload: transaction })
+        });
+        return true;
+      } catch (e) {
+        return false;
+      }
     }
   },
 
   async delete(id: string): Promise<boolean> {
     if (!API_URL) return false;
     try {
-      await fetch(API_URL, {
+      const response = await fetch(API_URL, {
         method: "POST",
-        mode: "no-cors",
+        mode: "cors",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "delete", payload: { id } })
       });
-      return true;
+      return response.ok || response.type === 'opaque';
     } catch (error) {
-      console.error("Erro ao deletar no Sheets:", error);
-      return false;
+      console.error("Erro ao deletar no Sheets (tentando fallback no-cors):", error);
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "delete", payload: { id } })
+        });
+        return true;
+      } catch (e) {
+        return false;
+      }
     }
   },
 
   async syncAll(transactions: Transaction[]): Promise<boolean> {
     if (!API_URL) return false;
     try {
-      await fetch(API_URL, {
+      const response = await fetch(API_URL, {
         method: "POST",
-        mode: "no-cors",
+        mode: "cors",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "syncAll", payload: transactions })
       });
-      return true;
+      return response.ok || response.type === 'opaque';
     } catch (error) {
-      console.error("Erro ao sincronizar tudo no Sheets:", error);
-      return false;
+      console.error("Erro ao sincronizar tudo no Sheets (tentando fallback no-cors):", error);
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "syncAll", payload: transactions })
+        });
+        return true;
+      } catch (e) {
+        return false;
+      }
     }
   }
 };
