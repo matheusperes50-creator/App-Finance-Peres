@@ -23,7 +23,35 @@ const App: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     try {
       const saved = localStorage.getItem('ff_transactions');
-      return saved ? JSON.parse(saved) : [];
+      let currentData = saved ? JSON.parse(saved) : [];
+      
+      // Injeção única dos dados da imagem de Março/2026
+      const injectionKey = 'ff_injected_march_2026_v2';
+      if (!localStorage.getItem(injectionKey)) {
+        const marchData: Transaction[] = [
+          { id: 'hwttkl6w6', descricao: 'internet', valor: 100, data: '2026-03-06', categoria: 'Moradia', tipo: 'Despesa', status: 'Pendente', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'hgbvnvfhb', descricao: 'Cartão Nubank', valor: 800, data: '2026-03-01', categoria: 'Cartão de crédito', tipo: 'Despesa', status: 'Pendente', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'ir156pfka', descricao: 'Internet', valor: 100, data: '2026-03-01', categoria: 'Moradia', tipo: 'Despesa', status: 'Pendente', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'ozzgou4rs', descricao: 'Lavagem Roupa + pilhas', valor: 175, data: '2026-03-01', categoria: 'Moradia', tipo: 'Despesa', status: 'Pendente', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'gh6ypsxyc', descricao: 'Cartão Nubank', valor: 800, data: '2026-03-01', categoria: 'Cartão de crédito', tipo: 'Despesa', status: 'Pago', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'kfh69c8fi', descricao: 'Som culto praise 202', valor: 25, data: '2026-03-01', categoria: 'Outro', tipo: 'Despesa', status: 'Pago', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'ysbprdasj', descricao: 'Viagem que não fomos', valor: 34, data: '2026-03-01', categoria: 'Outro', tipo: 'Despesa', status: 'Pago', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'u5z4gjrvs', descricao: 'Encontro de casais P', valor: 209, data: '2026-03-01', categoria: 'Outro', tipo: 'Despesa', status: 'Pendente', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'djsupdy7b', descricao: 'Contas Thainná', valor: 200, data: '2026-03-01', categoria: 'Utilidades gerais', tipo: 'Despesa', status: 'Pago', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'a2kb0ipxq', descricao: 'João Thiago cartão', valor: 55, data: '2026-03-01', categoria: 'Outro', tipo: 'Despesa', status: 'Pago', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: 'igcee4up6', descricao: 'Conta Nucel', valor: 30, data: '2026-03-01', categoria: 'Utilidades gerais', tipo: 'Despesa', status: 'Pendente', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() },
+          { id: '0t1jufqlu', descricao: 'Vivo Matheus', valor: 60.65, data: '2026-03-01', categoria: 'Utilidades gerais', tipo: 'Despesa', status: 'Pendente', frequencia: 'Fixo', pendingSync: true, updatedAt: Date.now() }
+        ];
+        
+        const existingIds = new Set(currentData.map((t: any) => t.id));
+        const toAdd = marchData.filter(t => !existingIds.has(t.id));
+        
+        currentData = [...toAdd, ...currentData];
+        localStorage.setItem(injectionKey, 'true');
+        localStorage.setItem('ff_transactions', JSON.stringify(currentData));
+      }
+      
+      return currentData;
     } catch (e) {
       console.error("Erro ao carregar dados locais:", e);
       return [];
@@ -66,10 +94,14 @@ const App: React.FC = () => {
               const remoteTime = remote.updatedAt || 0;
               const localTime = local.updatedAt || 0;
               
-              if (remoteTime >= localTime) {
+              // Só sobrescreve o local se:
+              // 1. O remoto for estritamente mais novo
+              // 2. O local não estiver pendente de sincronização
+              if (remoteTime > localTime || !local.pendingSync) {
                 mergedMap.set(remote.id, { ...remote, pendingSync: false });
               }
-              // Caso contrário, mantemos o local (que provavelmente tem pendingSync: true)
+              // Se os tempos forem iguais e o local estiver pendente, mantemos o local
+              // para garantir que o flag pendingSync continue visível até o sucesso do POST
             }
           });
           
@@ -446,6 +478,27 @@ const App: React.FC = () => {
                   </p>
                 </div>
               </div>
+
+              <button 
+                onClick={async () => { 
+                  if (window.confirm("Isso enviará TODOS os seus dados locais para a planilha, sobrescrevendo o que estiver lá. Deseja continuar?")) {
+                    setSyncStatus('syncing');
+                    const success = await sheetsService.syncAll(transactions);
+                    setSyncStatus(success ? 'online' : 'offline');
+                    if (success) {
+                      setTransactions(prev => prev.map(t => ({ ...t, pendingSync: false })));
+                      alert("Sincronização completa realizada com sucesso!");
+                    } else {
+                      alert("Erro ao realizar sincronização completa.");
+                    }
+                  }
+                }} 
+                disabled={syncStatus === 'syncing'}
+                className="w-full flex items-center justify-between p-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border border-slate-700"
+              >
+                <span>Forçar Envio Total</span>
+                <svg className={`w-4 h-4 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+              </button>
 
               <button 
                 onClick={() => { loadData(); setShowSettings(false); }} 

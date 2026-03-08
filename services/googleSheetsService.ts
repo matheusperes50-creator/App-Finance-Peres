@@ -1,6 +1,6 @@
 import { Transaction } from "../types";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyRZwkY1-CG8MDNCF-2QbMYGVK9pcI-MgcvG4HsICO46FGY4n255Gzjr5YMiU_bKlNjow/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxrF6Iq8rKcviAfy-_PBD2SrOt-SHBpfzZt1cfqY1KKW8-dqcqiLdpnj1V2EozdW6DRTQ/exec";
 
 /**
  * Normaliza as chaves de um objeto para minúsculas e remove acentos comuns.
@@ -63,6 +63,10 @@ export const sheetsService = {
         const generatedId = `${finalDate}-${(t.descricao || t.description || "sem-nome").toLowerCase().replace(/\s+/g, '-')}-${valorNumerico}`;
         const finalId = t.id ? t.id.toString() : generatedId;
 
+        // updatedAt robusto: se não vier da planilha, usamos 0 para que qualquer alteração local vença
+        // a menos que a remota seja explicitamente mais nova.
+        const updatedAt = t.updatedat ? Number(t.updatedat) : 0;
+
         return {
           id: finalId,
           descricao: t.descricao || t.description || t.nome || "Sem descrição",
@@ -72,7 +76,7 @@ export const sheetsService = {
           status: finalStatus as any,
           categoria: t.categoria || t.category || 'Outro',
           frequencia: t.frequencia || t.frequency || 'Esporádico',
-          updatedAt: t.updatedat ? Number(t.updatedat) : Date.now()
+          updatedAt: updatedAt
         } as Transaction;
       });
     } catch (error) {
@@ -83,26 +87,37 @@ export const sheetsService = {
 
   async save(transaction: Transaction): Promise<boolean> {
     if (!API_URL) return false;
+    
+    // Garantimos que o updatedAt vá para a planilha
+    const dataToSave = { ...transaction, updatedAt: transaction.updatedAt || Date.now() };
+    console.log("Salvando transação:", dataToSave.descricao);
+    
     try {
       const response = await fetch(API_URL, {
         method: "POST",
-        mode: "cors", // Tenta CORS para ver erros
+        mode: "cors",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "save", payload: transaction })
+        body: JSON.stringify({ action: "save", payload: dataToSave })
       });
       
-      // Se o CORS falhar, o fetch vai lançar um erro.
-      // Se o GAS redirecionar (comum), o fetch com 'follow' deve lidar com isso.
-      return response.ok || response.type === 'opaque';
+      if (response.ok) {
+        try {
+          const result = await response.json();
+          console.log("Resultado do save:", result);
+          return result.status === "success" || result.success === true;
+        } catch (e) {
+          return true;
+        }
+      }
+      return response.type === 'opaque';
     } catch (error) {
       console.error("Erro ao salvar no Sheets (tentando fallback no-cors):", error);
-      // Fallback para no-cors se o CORS estrito falhar
       try {
         await fetch(API_URL, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "save", payload: transaction })
+          body: JSON.stringify({ action: "save", payload: dataToSave })
         });
         return true;
       } catch (e) {
@@ -139,6 +154,7 @@ export const sheetsService = {
 
   async syncAll(transactions: Transaction[]): Promise<boolean> {
     if (!API_URL) return false;
+    console.log("Sincronizando todos os dados:", transactions.length);
     try {
       const response = await fetch(API_URL, {
         method: "POST",
@@ -146,6 +162,16 @@ export const sheetsService = {
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "syncAll", payload: transactions })
       });
+      
+      if (response.ok) {
+        try {
+          const result = await response.json();
+          console.log("Resultado do syncAll:", result);
+          return result.status === "success" || result.success === true;
+        } catch (e) {
+          return true;
+        }
+      }
       return response.ok || response.type === 'opaque';
     } catch (error) {
       console.error("Erro ao sincronizar tudo no Sheets (tentando fallback no-cors):", error);
